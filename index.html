@@ -12,6 +12,11 @@
 <link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS3GwHAAADMUlEQVR4nO3dMWoUYRiA4VHS2+QEKUQsPEB6b2GljXXwGLKFlYWFJ7CyMn2OICFIEOsg6AW0NkVm4g4zs7zP0yW77HwQXn74P5I8uPjw7M8AUQ/XHgDWJADSBEDa0e1vPD+7WWMOWMT57vifr50ApAmANAGQJgDSBECaAEgTAGkCIE0ApAmANAGQJgDSBECaAEgTAGkCIE0ApAmANAGQJgDSBECaAEgTAGkCIE0ApAmANAGQJgDSBECaAEgTAGkCIE0ApAmANAGQJgDSBECaAEgTAGkCIE0ApAmANAGQJgDSBECaAEgTAGkCIE0ApAmANAGQJgDSBECaAEgTAGkCIE0ApAmANAGQJgDSBECaAEgTAGkCIE0ApB2tPcB9PRpu9v6MqzevZ5hkHo/fvl97hNn8Go7XHuHenACkCYA0AZAmANIEQJoASBMAaZvbAyxxz//z67e9nzGXOXYSY7uEJZ4xDOM/uy3uCZwApAmANAGQJgDSBECaAEgTAGkCIG1zi7AxU5Y6T999vPP1yx/fRz/j5uWLiRPtZ46l3BKLv93Jyeh7zq6v937O0pwApAmANAGQJgDSBECaAEgTAGkHtwf4/OnL6HvG7vmXuuNfytg9/8Xl/vfzh3jHP4UTgDQBkCYA0gRAmgBIEwBpAiBNAKQd3CJs0kLm9PTul5+M/3LHFHMsmOaYZWyOpZZYW/zLb2OcAKQJgDQBkCYA0gRAmgBIEwBpAiBtc4uwsWXKlH+hNLb42d1rov9/zhRzzDLHHIe4xJqDE4A0AZAmANIEQJoASBMAaQIgbXN7gDFz3Fe/uv49wyTDMGxmluYd/hycAKQJgDQBkCYA0gRAmgBIEwBpAiBNAKQJgDQBkCYA0gRAmgBIEwBpAiBNAKQJgDQBkCYA0gRAmgBIEwBpAiBNAKQJgDQBkCYA0gRAmgBIEwBpAiBNAKQJgDQBkCYA0gRAmgBIEwBpAiBNAKQJgDQBkCYA0gRAmgBIEwBpAiBNAKQJgDQBkCYA0gRAmgBIEwBpAiBNAKQJgDQBkCYA0gRAmgBIEwBpAiBNAKQJgLSj29843x2vMQeswglAmgBIEwBpfwHDU1XYzeX5CwAAAABJRU5ErkJggg==">
 <link rel="manifest" href="manifest.webmanifest">
 <title>PIXEL ANGLER — fishing sim</title>
+<script>
+// Capture the browser's install prompt before the game and its artwork initialize.
+let installPrompt = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installPrompt = e; });
+</script>
 <style>
   :root{
     --bg:#0d1020; --panel:#151a30; --edge:#2b3352; --ink:#dfe8ff; --dim:#8b93b8;
@@ -1487,10 +1492,8 @@ setTimeout(() => { if (!gameStarted && state === 'idle') action(); }, 800);
 setInterval(() => { if (!gameStarted && state === 'idle') action(); }, 4000);
 const installBtn = document.getElementById('installBtn');
 const installHelp = document.getElementById('installHelp');
-let installPrompt = null;
 const installed = () => window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
 if (installed()) installBtn.hidden = true;
-window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installPrompt = e; });
 window.addEventListener('appinstalled', () => { installPrompt = null; installBtn.hidden = true; installHelp.hidden = true; });
 // Do not let the title's tap-to-start handler consume install taps.
 installBtn.addEventListener('pointerdown', e => e.stopPropagation());
@@ -1500,12 +1503,14 @@ installBtn.addEventListener('click', async e => {
   e.stopPropagation();
   if (installPrompt){
     const prompt = installPrompt; installPrompt = null;
-    await prompt.prompt();
-    await prompt.userChoice;
+    try { await prompt.prompt(); } catch (err) {
+      installHelp.textContent = 'GAMITIN ANG BROWSER MENU → INSTALL APP O ADD TO HOME SCREEN.';
+      installHelp.hidden = false;
+    }
   } else {
     installHelp.textContent = /iPhone|iPad|iPod/i.test(navigator.userAgent)
       ? 'SA SAFARI: SHARE → ADD TO HOME SCREEN.'
-      : 'SA CHROME: MENU ⋮ → INSTALL APP O ADD TO HOME SCREEN. BUKSAN ANG SITE SA HTTPS.';
+      : 'KUNG WALA PANG PROMPT, SA CHROME MENU ⋮ → INSTALL APP O ADD TO HOME SCREEN. BUKSAN SA HTTPS.';
     installHelp.hidden = false;
   }
 });
