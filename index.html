@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#0b0e1a">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -306,6 +306,19 @@
   }
   #startBtn:hover{ transform:translateY(-4px) scale(1.05); }
   #startBtn:active{ transform:translateY(2px) scale(.96); }
+  /* Keep the title readable on tall phones and short landscape screens. */
+  #title{ padding:max(12px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); gap:clamp(4px, 2vh, 16px); text-align:center; overflow-y:auto; }
+  #title .tLogo, #title .tRefl{ width:min(90vw, 660px, 40vh * 95 / 16); flex:none; }
+  #title .tLogo{ height:auto; aspect-ratio:95 / 16; }
+  #title .tRefl{ height:auto; aspect-ratio:95 / 8.8; }
+  #title .tSub{ font-size:clamp(9px, 2.5vw, 12px); letter-spacing:clamp(1px, .7vw, 5px); line-height:1.4; }
+  #title #startBtn, #installBtn{ position:relative; z-index:2; flex:none; margin:0; padding:10px 30px; min-height:44px; }
+  #installBtn{ font-size:11px; letter-spacing:2px; }
+  #installBtn[hidden], #installHelp[hidden]{ display:none; }
+  #installHelp{ position:relative; z-index:2; max-width:34em; color:#fff4c0; font-size:11px; line-height:1.4; text-shadow:0 1px 2px #000; }
+  @media (max-height:400px){ #title .tRefl{ display:none; } #title .tLogo{ width:min(75vw, 500px, 30vh * 95 / 16); } }
+  body.titleMode #console{ height:100dvh; }
+  body.titleMode #game{ height:100dvh !important; }
   @keyframes spulse{
     0%{ box-shadow:0 0 0 2px rgba(255,215,94,.95), 0 3px 0 rgba(0,0,0,.85); }
     50%{ box-shadow:0 0 0 6px rgba(255,215,94,.22), 0 3px 0 rgba(0,0,0,.85); }
@@ -375,9 +388,6 @@
   <div class="grip" id="gripR">
     <button class="pbtn i-bobber" id="cCast" aria-label="cast or hook" style="--sz:72px"></button>
     <div class="gripLabel castLabel">CAST</div>
-    <div class="srow">
-      <button class="pbtn small i-bag" id="cMenu" aria-label="bag"></button>
-    </div>
   </div>
 </div>
 
@@ -429,6 +439,8 @@
   <div class="tRefl"></div>
   <div class="tSub">ISANG TAHIMIK NA LOFI NA PANGISDA</div>
   <button class="pbtn pill" id="startBtn">START</button>
+  <button class="pbtn pill" id="installBtn">INSTALL</button>
+  <div id="installHelp" hidden></div>
 </div>
 
 <script>
@@ -1470,6 +1482,30 @@ function startGame(){
 /* title ambience: character fishes behind the title screen */
 setTimeout(() => { if (!gameStarted && state === 'idle') action(); }, 800);
 setInterval(() => { if (!gameStarted && state === 'idle') action(); }, 4000);
+const installBtn = document.getElementById('installBtn');
+const installHelp = document.getElementById('installHelp');
+let installPrompt = null;
+const installed = () => window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+if (installed()) installBtn.hidden = true;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installPrompt = e; });
+window.addEventListener('appinstalled', () => { installPrompt = null; installBtn.hidden = true; installHelp.hidden = true; });
+// Do not let the title's tap-to-start handler consume install taps.
+installBtn.addEventListener('pointerdown', e => e.stopPropagation());
+installBtn.addEventListener('keydown', e => e.stopPropagation());
+installHelp.addEventListener('pointerdown', e => e.stopPropagation());
+installBtn.addEventListener('click', async e => {
+  e.stopPropagation();
+  if (installPrompt){
+    const prompt = installPrompt; installPrompt = null;
+    await prompt.prompt();
+    await prompt.userChoice;
+  } else {
+    installHelp.textContent = /iPhone|iPad|iPod/i.test(navigator.userAgent)
+      ? 'SA SAFARI: SHARE → ADD TO HOME SCREEN.'
+      : 'SA CHROME: MENU ⋮ → INSTALL APP O ADD TO HOME SCREEN. BUKSAN ANG SITE SA HTTPS.';
+    installHelp.hidden = false;
+  }
+});
 titleEl.addEventListener('pointerdown', startGame);
 document.getElementById('startBtn').addEventListener('click', e => { e.stopPropagation(); startGame(); });
 window.addEventListener('keydown', startGame);
@@ -1492,7 +1528,6 @@ syncAudioBtns();
 
 /* bag sheet + tabs */
 const sheet = document.getElementById('sheet');
-document.getElementById('cMenu').addEventListener('click', () => sheet.classList.toggle('open'));
 document.getElementById('btnBag').addEventListener('click', () => { sheet.classList.toggle('open'); setPanel.classList.remove('open'); });
 document.getElementById('sheetClose').addEventListener('click', () => sheet.classList.remove('open'));
 const TABS = [ ['tabShop', 'shopwrap'], ['tabDex', 'dexwrap'], ['tabLog', 'logwrap'] ];
