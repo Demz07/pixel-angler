@@ -12,6 +12,11 @@
 <link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS3GwHAAADMUlEQVR4nO3dMWoUYRiA4VHS2+QEKUQsPEB6b2GljXXwGLKFlYWFJ7CyMn2OICFIEOsg6AW0NkVm4g4zs7zP0yW77HwQXn74P5I8uPjw7M8AUQ/XHgDWJADSBEDa0e1vPD+7WWMOWMT57vifr50ApAmANAGQJgDSBECaAEgTAGkCIE0ApAmANAGQJgDSBECaAEgTAGkCIE0ApAmANAGQJgDSBECaAEgTAGkCIE0ApAmANAGQJgDSBECaAEgTAGkCIE0ApAmANAGQJgDSBECaAEgTAGkCIE0ApAmANAGQJgDSBECaAEgTAGkCIE0ApAmANAGQJgDSBECaAEgTAGkCIE0ApAmANAGQJgDSBECaAEgTAGkCIE0ApB2tPcB9PRpu9v6MqzevZ5hkHo/fvl97hNn8Go7XHuHenACkCYA0AZAmANIEQJoASBMAaZvbAyxxz//z67e9nzGXOXYSY7uEJZ4xDOM/uy3uCZwApAmANAGQJgDSBECaAEgTAGkCIG1zi7AxU5Y6T999vPP1yx/fRz/j5uWLiRPtZ46l3BKLv93Jyeh7zq6v937O0pwApAmANAGQJgDSBECaAEgTAGkHtwf4/OnL6HvG7vmXuuNfytg9/8Xl/vfzh3jHP4UTgDQBkCYA0gRAmgBIEwBpAiBNAKQd3CJs0kLm9PTul5+M/3LHFHMsmOaYZWyOpZZYW/zLb2OcAKQJgDQBkCYA0gRAmgBIEwBpAiBtc4uwsWXKlH+hNLb42d1rov9/zhRzzDLHHIe4xJqDE4A0AZAmANIEQJoASBMAaQIgbXN7gDFz3Fe/uv49wyTDMGxmluYd/hycAKQJgDQBkCYA0gRAmgBIEwBpAiBNAKQJgDQBkCYA0gRAmgBIEwBpAiBNAKQJgDQBkCYA0gRAmgBIEwBpAiBNAKQJgDQBkCYA0gRAmgBIEwBpAiBNAKQJgDQBkCYA0gRAmgBIEwBpAiBNAKQJgDQBkCYA0gRAmgBIEwBpAiBNAKQJgDQBkCYA0gRAmgBIEwBpAiBNAKQJgDQBkCYA0gRAmgBIEwBpAiBNAKQJgLSj29843x2vMQeswglAmgBIEwBpfwHDU1XYzeX5CwAAAABJRU5ErkJggg==">
 <link rel="manifest" href="manifest.webmanifest">
 <title>PIXEL ANGLER — fishing sim</title>
+<script>
+// Capture the browser's install prompt before the game and its artwork initialize.
+let installPrompt = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installPrompt = e; });
+</script>
 <style>
   :root{
     --bg:#0d1020; --panel:#151a30; --edge:#2b3352; --ink:#dfe8ff; --dim:#8b93b8;
@@ -269,7 +274,10 @@
   body.titleMode header, body.titleMode footer, body.titleMode #ui, body.titleMode .grip{ display:none !important; }
   body.titleMode #console{ padding:0; gap:0; height:100vh; }
   body.titleMode #screenWrap{ border-image:none; padding:0; box-shadow:none; flex:1; display:flex; align-items:center; justify-content:center; }
-  body.titleMode #game{ position:fixed; left:50%; top:50%; width:max(100vw, 177.778vh) !important; height:max(100vh, 56.25vw) !important; transform:translate(-50%, -50%); }
+  /* Show the entire 16:9 scene. A softened copy fills any extra screen space. */
+  #titleBackdrop{ display:none; }
+  body.titleMode #titleBackdrop{ display:block; position:fixed; inset:0; width:100vw; height:100vh; object-fit:cover; filter:blur(12px) brightness(.55); pointer-events:none; }
+  body.titleMode #game{ position:fixed; left:50%; top:50%; width:min(100vw, 177.778vh) !important; height:min(100vh, 56.25vw) !important; transform:translate(-50%, -50%); }
   #title .tLogo{
     width:min(90vw, 660px); height:calc(min(90vw, 660px) * 16 / 95);
     background:var(--logo) center/contain no-repeat; image-rendering:pixelated;
@@ -319,7 +327,8 @@
   #installHelp{ position:relative; z-index:2; max-width:34em; color:#fff4c0; font-size:11px; line-height:1.4; text-shadow:0 1px 2px #000; }
   @media (max-height:400px){ #title .tRefl{ display:none; } #title .tLogo{ width:min(75vw, 500px, 30vh * 95 / 16); } }
   body.titleMode #console{ height:100dvh; }
-  body.titleMode #game{ width:max(100vw, 177.778dvh) !important; height:max(100dvh, 56.25vw) !important; }
+  body.titleMode #titleBackdrop{ height:100dvh; }
+  body.titleMode #game{ width:min(100vw, 177.778dvh) !important; height:min(100dvh, 56.25vw) !important; }
   @keyframes spulse{
     0%{ box-shadow:0 0 0 2px rgba(255,215,94,.95), 0 3px 0 rgba(0,0,0,.85); }
     50%{ box-shadow:0 0 0 6px rgba(255,215,94,.22), 0 3px 0 rgba(0,0,0,.85); }
@@ -384,7 +393,7 @@
     <div class="joy" id="joyG"><i class="joyKnob"></i></div>
   </div>
   <div id="screenWrap">
-    <div id="stage"><canvas id="game" width="320" height="180"></canvas></div>
+    <div id="stage"><canvas id="titleBackdrop" width="320" height="180" aria-hidden="true"></canvas><canvas id="game" width="320" height="180"></canvas></div>
   </div>
   <div class="grip" id="gripR">
     <button class="pbtn i-bobber" id="cCast" aria-label="cast or hook" style="--sz:72px"></button>
@@ -490,6 +499,8 @@ const BANK_Y  = 150;         /* bank top */
 let   charX   = 232;         /* character center x (walks!) */
 const FEET_Y  = 172;         /* character feet y */
 const cv  = document.getElementById('game');
+const titleBackdropCtx = document.getElementById('titleBackdrop').getContext('2d');
+titleBackdropCtx.imageSmoothingEnabled = false;
 // Draw the pixel art at its original coordinates, but render lettering at higher resolution.
 const RENDER_SCALE = 3;
 cv.width = W * RENDER_SCALE; cv.height = H * RENDER_SCALE;
@@ -1481,10 +1492,8 @@ setTimeout(() => { if (!gameStarted && state === 'idle') action(); }, 800);
 setInterval(() => { if (!gameStarted && state === 'idle') action(); }, 4000);
 const installBtn = document.getElementById('installBtn');
 const installHelp = document.getElementById('installHelp');
-let installPrompt = null;
 const installed = () => window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
 if (installed()) installBtn.hidden = true;
-window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installPrompt = e; });
 window.addEventListener('appinstalled', () => { installPrompt = null; installBtn.hidden = true; installHelp.hidden = true; });
 // Do not let the title's tap-to-start handler consume install taps.
 installBtn.addEventListener('pointerdown', e => e.stopPropagation());
@@ -1494,12 +1503,14 @@ installBtn.addEventListener('click', async e => {
   e.stopPropagation();
   if (installPrompt){
     const prompt = installPrompt; installPrompt = null;
-    await prompt.prompt();
-    await prompt.userChoice;
+    try { await prompt.prompt(); } catch (err) {
+      installHelp.textContent = 'GAMITIN ANG BROWSER MENU → INSTALL APP O ADD TO HOME SCREEN.';
+      installHelp.hidden = false;
+    }
   } else {
     installHelp.textContent = /iPhone|iPad|iPod/i.test(navigator.userAgent)
       ? 'SA SAFARI: SHARE → ADD TO HOME SCREEN.'
-      : 'SA CHROME: MENU ⋮ → INSTALL APP O ADD TO HOME SCREEN. BUKSAN ANG SITE SA HTTPS.';
+      : 'KUNG WALA PANG PROMPT, SA CHROME MENU ⋮ → INSTALL APP O ADD TO HOME SCREEN. BUKSAN SA HTTPS.';
     installHelp.hidden = false;
   }
 });
@@ -1559,6 +1570,7 @@ function loop(now){
   tNow = now / 1000;
   update(dt);
   draw();
+  if (!gameStarted) titleBackdropCtx.drawImage(cv, 0, 0, W, H);
   const cl = CAST_LBL[state] || 'CAST';
   for (let i = 0; i < castLabels.length; i++) castLabels[i].textContent = cl;
   syncActBtn();
