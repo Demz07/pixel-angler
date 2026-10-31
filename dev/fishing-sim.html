@@ -265,10 +265,11 @@
   }
   @keyframes gblink{ 0%,100%{ outline-color:rgba(255,215,94,.95) } 50%{ outline-color:rgba(255,215,94,.22) } }
   /* title mode: game canvas ONLY - no controls, no chrome */
+  body.titleMode{ overflow:hidden; }
   body.titleMode header, body.titleMode footer, body.titleMode #ui, body.titleMode .grip{ display:none !important; }
   body.titleMode #console{ padding:0; gap:0; height:100vh; }
   body.titleMode #screenWrap{ border-image:none; padding:0; box-shadow:none; flex:1; display:flex; align-items:center; justify-content:center; }
-  body.titleMode #game{ position:fixed; inset:0; width:100vw !important; height:100vh !important; object-fit:cover; }
+  body.titleMode #game{ position:fixed; left:50%; top:50%; width:max(100vw, 177.778vh) !important; height:max(100vh, 56.25vw) !important; transform:translate(-50%, -50%); }
   #title .tLogo{
     width:min(90vw, 660px); height:calc(min(90vw, 660px) * 16 / 95);
     background:var(--logo) center/contain no-repeat; image-rendering:pixelated;
@@ -318,7 +319,7 @@
   #installHelp{ position:relative; z-index:2; max-width:34em; color:#fff4c0; font-size:11px; line-height:1.4; text-shadow:0 1px 2px #000; }
   @media (max-height:400px){ #title .tRefl{ display:none; } #title .tLogo{ width:min(75vw, 500px, 30vh * 95 / 16); } }
   body.titleMode #console{ height:100dvh; }
-  body.titleMode #game{ height:100dvh !important; }
+  body.titleMode #game{ width:max(100vw, 177.778dvh) !important; height:max(100dvh, 56.25vw) !important; }
   @keyframes spulse{
     0%{ box-shadow:0 0 0 2px rgba(255,215,94,.95), 0 3px 0 rgba(0,0,0,.85); }
     50%{ box-shadow:0 0 0 6px rgba(255,215,94,.22), 0 3px 0 rgba(0,0,0,.85); }
@@ -489,7 +490,11 @@ const BANK_Y  = 150;         /* bank top */
 let   charX   = 232;         /* character center x (walks!) */
 const FEET_Y  = 172;         /* character feet y */
 const cv  = document.getElementById('game');
+// Draw the pixel art at its original coordinates, but render lettering at higher resolution.
+const RENDER_SCALE = 3;
+cv.width = W * RENDER_SCALE; cv.height = H * RENDER_SCALE;
 const ctx = cv.getContext('2d');
+ctx.scale(RENDER_SCALE, RENDER_SCALE);
 ctx.imageSmoothingEnabled = false;
 const sprCv = document.createElement('canvas');
 sprCv.width = 64; sprCv.height = 52;
@@ -530,42 +535,27 @@ function fit(){
 }
 window.addEventListener('resize', fit); fit();
 
-/* ============================== TINY 3x5 FONT ============================== */
-const FONT = {
-A:'.#.|#.#|###|#.#|#.#', B:'##.|#.#|##.|#.#|##.', C:'.##|#..|#..|#..|.##',
-D:'##.|#.#|#.#|#.#|##.', E:'###|#..|##.|#..|###', F:'###|#..|##.|#..|#..',
-G:'.##|#..|#.#|#.#|.##', H:'#.#|#.#|###|#.#|#.#', I:'###|.#.|.#.|.#.|###',
-J:'..#|..#|..#|#.#|.#.', K:'#.#|#.#|##.|#.#|#.#', L:'#..|#..|#..|#..|###',
-M:'#.#|###|###|#.#|#.#', N:'##.|#.#|#.#|#.#|#.#', O:'.#.|#.#|#.#|#.#|.#.',
-P:'##.|#.#|##.|#..|#..', Q:'.#.|#.#|#.#|##.|.##', R:'##.|#.#|##.|#.#|#.#',
-S:'.##|#..|.#.|..#|##.', T:'###|.#.|.#.|.#.|.#.', U:'#.#|#.#|#.#|#.#|###',
-V:'#.#|#.#|#.#|#.#|.#.', W:'#.#|#.#|###|###|#.#', X:'#.#|#.#|.#.|#.#|#.#',
-Y:'#.#|#.#|.#.|.#.|.#.', Z:'###|..#|.#.|#..|###',
-'0':'.#.|#.#|#.#|#.#|.#.', '1':'.#.|##.|.#.|.#.|###', '2':'##.|..#|.#.|#..|###',
-'3':'##.|..#|.#.|..#|##.', '4':'#.#|#.#|###|..#|..#', '5':'###|#..|##.|..#|##.',
-'6':'.##|#..|##.|#.#|.#.', '7':'###|..#|..#|..#|..#', '8':'.#.|#.#|.#.|#.#|.#.',
-'9':'.#.|#.#|.##|..#|##.', ' ':'...|...|...|...|...', '.':'...|...|...|.#.|.#.',
-',':'...|...|...|.#.|#..', '!':'.#.|.#.|.#.|...|.#.', '?':'##.|..#|.#.|...|.#.',
-':':'.#.|...|.#.|...|.#.', '-':'...|...|###|...|...', "'":'.#.|.#.|...|...|...',
-'(':'..#|.#.|.#.|.#.|..#', ')':'#..|.#.|.#.|.#.|#..', '/':'..#|..#|.#.|#..|#..',
-'%':'#.#|..#|.#.|#..|#.#'
-};
-function textWidth(str, s){ return str.length * 4 * s - s; }
+/* ============================== READABLE CANVAS TEXT ============================== */
+// Retain the original text bounds so plaques and long tutorial hints still fit.
+function textWidth(str, s){ return Math.max(0, String(str).length * 4 * s - s); }
 function drawText(str, x, y, col, s, align){
   s = s || 1;
   str = String(str).toUpperCase();
-  if (align === 'center') x -= textWidth(str, s) / 2;
-  if (align === 'right')  x -= textWidth(str, s);
+  const width = textWidth(str, s);
+  if (!width) return;
+  ctx.save();
+  ctx.font = 'bold ' + (7 * s) + 'px Arial, sans-serif';
+  ctx.textBaseline = 'top';
+  ctx.textAlign = align === 'center' ? 'center' : align === 'right' ? 'right' : 'left';
   ctx.fillStyle = col;
-  for (let i = 0; i < str.length; i++){
-    const g = FONT[str[i]] || FONT['?'];
-    const rows = g.split('|');
-    for (let r = 0; r < 5; r++){
-      for (let c = 0; c < 3; c++){
-        if (rows[r][c] === '#') ctx.fillRect(x + i * 4 * s + c * s, y + r * s, s, s);
-      }
-    }
+  // Light text gets a dark edge against changing scenery; plaque text is already dark.
+  if (col !== '#2a1608'){
+    ctx.shadowColor = 'rgba(0,0,0,.9)';
+    ctx.shadowBlur = 1;
+    ctx.shadowOffsetY = 0.6;
   }
+  ctx.fillText(str, x, y - 0.5 * s, width);
+  ctx.restore();
 }
 
 /* ============================== AUDIO ============================== */
@@ -1438,6 +1428,13 @@ const TUT_STEPS = [
   { id:'finish', hint:'TUTORIAL 4/4 : TAPOS NA! PINDOT PARA ISARA ANG HULI', hl:[] }
 ];
 const tut = { on:false, step:0, walked:0, lastX:0, markT:0 };
+const TUTORIAL_KEY = 'pixel-angler-tutorial-complete';
+function tutorialCompleted(){
+  try { return localStorage.getItem(TUTORIAL_KEY) === '1'; } catch (e) { return false; }
+}
+function saveTutorialCompleted(){
+  try { localStorage.setItem(TUTORIAL_KEY, '1'); } catch (e) { /* Storage may be unavailable in private mode. */ }
+}
 function tutClearHl(){ document.querySelectorAll('.guide').forEach(e => e.classList.remove('guide')); }
 function tutApply(){
   tutClearHl();
@@ -1447,7 +1444,7 @@ function tutStart(){ tut.on = true; tut.step = 0; tut.walked = 0; tut.lastX = ch
 function tutNext(){
   tut.step++; tut.markT = tNow;
   if (tut.step >= TUT_STEPS.length){
-    tut.on = false; tutClearHl();
+    tut.on = false; tutClearHl(); saveTutorialCompleted();
     toast('TUTORIAL TAPOS! MALIGAYANG PANGINGISDA!', '#ffd75e');
     return;
   }
@@ -1476,7 +1473,7 @@ function startGame(){
   document.body.classList.remove('titleMode');
   fit();
   state = 'idle'; bobber.on = false; shadow = null; caught = null;
-  tutStart();
+  if (!tutorialCompleted()) tutStart();
   audio(); startMusic();
 }
 /* title ambience: character fishes behind the title screen */
