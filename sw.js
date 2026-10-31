@@ -1,5 +1,5 @@
 /* Pixel Angler: update the app when online, keep it playable offline. */
-const CACHE = 'pixel-angler-v5';
+const CACHE = 'pixel-angler-v6';
 const ASSETS = ['./index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
